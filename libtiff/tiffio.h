@@ -412,6 +412,7 @@ extern int TIFFWriteDirectory(TIFF *);
 extern int TIFFWriteCustomDirectory(TIFF *, uint64 *);
 extern int TIFFCheckpointDirectory(TIFF *);
 extern int TIFFRewriteDirectory(TIFF *);
+extern int TIFFCheckDirOffset(TIFF* tif, uint64 diroff);
 
 #if defined(c_plusplus) || defined(__cplusplus)
 extern void TIFFPrintDirectory(TIFF*, FILE*, long = 0);

@@ -2443,12 +2443,18 @@ TIFFLinkDirectory(TIFF* tif)
 					     "Error writing TIFF header");
 				return (0);
 			}
+			/* Store the directory offset in the list of already seen directory offsets. */
+			TIFFCheckDirOffset(tif, m);
 			return (1);
 		}
 		/*
 		 * Not the first directory, search to the last and append.
+		 * Start with the last seen offset from the list.
 		 */
-		nextdir = tif->tif_header.classic.tiff_diroff;
+		if (tif->tif_dirnumber > 0)
+			nextdir = tif->tif_dirlist[tif->tif_dirnumber - 1];
+		else	
+			nextdir = tif->tif_header.classic.tiff_diroff;
 		while(1) {
 			uint16 dircount;
 			uint32 nextnextdir;
@@ -2479,6 +2485,8 @@ TIFFLinkDirectory(TIFF* tif)
 					     "Error writing directory link");
 					return (0);
 				}
+				/* Store the directory offset in the list of already seen directory offsets. */
+				TIFFCheckDirOffset(tif, m);
 				break;
 			}
 			nextdir=nextnextdir;
@@ -2502,12 +2510,18 @@ TIFFLinkDirectory(TIFF* tif)
 					     "Error writing TIFF header");
 				return (0);
 			}
+			/* Store the directory offset in the list of already seen directory offsets. */
+			TIFFCheckDirOffset(tif, m);
 			return (1);
 		}
 		/*
 		 * Not the first directory, search to the last and append.
+		 * Start with the last seen offset from the list.
 		 */
-		nextdir = tif->tif_header.big.tiff_diroff;
+		if (tif->tif_dirnumber > 0)
+			nextdir = tif->tif_dirlist[tif->tif_dirnumber - 1];
+		else
+			nextdir = tif->tif_header.big.tiff_diroff;
 		while(1) {
 			uint64 dircount64;
 			uint16 dircount;
@@ -2546,6 +2560,8 @@ TIFFLinkDirectory(TIFF* tif)
 					     "Error writing directory link");
 					return (0);
 				}
+				/* Store the directory offset in the list of already seen directory offsets. */
+				TIFFCheckDirOffset(tif, m);
 				break;
 			}
 			nextdir=nextnextdir;

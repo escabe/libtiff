@@ -157,7 +157,6 @@ static void TIFFReadDirectoryFindFieldInfo(TIFF* tif, uint16 tagid, uint32* fii)
 
 static int EstimateStripByteCounts(TIFF* tif, TIFFDirEntry* dir, uint16 dircount);
 static void MissingRequired(TIFF*, const char*);
-static int TIFFCheckDirOffset(TIFF* tif, uint64 diroff);
 static int CheckDirCount(TIFF*, TIFFDirEntry*, uint32);
 static uint16 TIFFFetchDirectory(TIFF* tif, uint64 diroff, TIFFDirEntry** pdir, uint64* nextdiroff);
 static int TIFFFetchNormalTag(TIFF*, TIFFDirEntry*, int recover);
@@ -4368,54 +4367,6 @@ MissingRequired(TIFF* tif, const char* tagname)
 	    tagname);
 }
 
-/*
- * Check the directory offset against the list of already seen directory
- * offsets. This is a trick to prevent IFD looping. The one can create TIFF
- * file with looped directory pointers. We will maintain a list of already
- * seen directories and check every IFD offset against that list.
- */
-static int
-TIFFCheckDirOffset(TIFF* tif, uint64 diroff)
-{
-	uint16 n;
-
-	if (diroff == 0)			/* no more directories */
-		return 0;
-	if (tif->tif_dirnumber == 65535) {
-	    TIFFErrorExt(tif->tif_clientdata, "TIFFCheckDirOffset",
-			 "Cannot handle more than 65535 TIFF directories");
-	    return 0;
-	}
-
-	for (n = 0; n < tif->tif_dirnumber && tif->tif_dirlist; n++) {
-		if (tif->tif_dirlist[n] == diroff)
-			return 0;
-	}
-
-	tif->tif_dirnumber++;
-
-	if (tif->tif_dirnumber > tif->tif_dirlistsize) {
-		uint64* new_dirlist;
-
-		/*
-		 * XXX: Reduce memory allocation granularity of the dirlist
-		 * array.
-		 */
-		new_dirlist = (uint64*)_TIFFCheckRealloc(tif, tif->tif_dirlist,
-		    tif->tif_dirnumber, 2 * sizeof(uint64), "for IFD list");
-		if (!new_dirlist)
-			return 0;
-		if( tif->tif_dirnumber >= 32768 )
-		    tif->tif_dirlistsize = 65535;
-		else
-		    tif->tif_dirlistsize = 2 * tif->tif_dirnumber;
-		tif->tif_dirlist = new_dirlist;
-	}
-
-	tif->tif_dirlist[tif->tif_dirnumber - 1] = diroff;
-
-	return 1;
-}
 
 /*
  * Check the count field of a directory entry against a known value.  The

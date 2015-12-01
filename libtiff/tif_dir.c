@@ -1695,6 +1695,58 @@ TIFFUnlinkDirectory(TIFF* tif, uint16 dirn)
 	return (1);
 }
 
+
+/*
+* Check the directory offset against the list of already seen directory
+* offsets. This is a trick to prevent IFD looping. The one can create TIFF
+* file with looped directory pointers. We will maintain a list of already
+* seen directories and check every IFD offset against that list.
+*/
+int
+TIFFCheckDirOffset(TIFF* tif, uint64 diroff)
+{
+	uint16 n;
+
+	if (diroff == 0)			/* no more directories */
+		return 0;
+	if (tif->tif_dirnumber == 65535) {
+		TIFFErrorExt(tif->tif_clientdata, "TIFFCheckDirOffset",
+			"Cannot handle more than 65535 TIFF directories");
+		return 0;
+	}
+
+	for (n = 0; n < tif->tif_dirnumber && tif->tif_dirlist; n++) {
+		if (tif->tif_dirlist[n] == diroff)
+			return 0;
+	}
+
+	tif->tif_dirnumber++;
+
+	if (tif->tif_dirnumber > tif->tif_dirlistsize) {
+		uint64* new_dirlist;
+
+		/*
+		* XXX: Reduce memory allocation granularity of the dirlist
+		* array.
+		*/
+		new_dirlist = (uint64*)_TIFFCheckRealloc(tif, tif->tif_dirlist,
+			tif->tif_dirnumber, 2 * sizeof(uint64), "for IFD list");
+		if (!new_dirlist)
+			return 0;
+		if (tif->tif_dirnumber >= 32768)
+			tif->tif_dirlistsize = 65535;
+		else
+			tif->tif_dirlistsize = 2 * tif->tif_dirnumber;
+		tif->tif_dirlist = new_dirlist;
+	}
+
+	tif->tif_dirlist[tif->tif_dirnumber - 1] = diroff;
+
+	return 1;
+}
+
+
+
 /* vim: set ts=8 sts=8 sw=8 noet: */
 /*
  * Local Variables:
